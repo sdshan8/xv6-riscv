@@ -20,6 +20,10 @@
   } while (0)
 #endif
 
+#define bzero(p, n) memset(p, 0, n)
+#define bcopy(src, dst, n) memmove(dst, src, n)
+#define index(s, c) strchr(s, c)
+
 #define NINODES 200
 
 // Disk layout:
@@ -132,22 +136,14 @@ main(int argc, char *argv[])
   iappend(rootino, &de, sizeof(de));
 
   for (i = 2; i < argc; i++) {
-    // get rid of "user/"
-    char *shortname;
-    if (strncmp(argv[i], "user/", 5) == 0)
-      shortname = argv[i] + 5;
-    else
-      shortname = argv[i];
-
-    assert(index(shortname, '/') == 0);
+    // strip any leading directory (build/riscv64/user/_cat -> _cat)
+    char *shortname = strrchr(argv[i], '/');
+    shortname = shortname ? shortname + 1 : argv[i];
 
     if ((fd = open(argv[i], 0)) < 0)
       die(argv[i]);
 
     // Skip leading _ in name when writing to file system.
-    // The binaries are named _rm, _cat, etc. to keep the
-    // build operating system from trying to execute them
-    // in place of system binaries like rm and cat.
     if (shortname[0] == '_')
       shortname += 1;
 
