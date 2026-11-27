@@ -38,19 +38,17 @@ else
   $(error Unknown ARCH '$(ARCH)')
 endif
 
-CFLAGS := $(ARCHFLAGS) -std=gnu99 -O2 -g -ggdb
-CFLAGS += -ffreestanding -fno-builtin -fno-common -fno-pie
-CFLAGS += -fno-stack-protector -fno-omit-frame-pointer
-CFLAGS += -fno-delete-null-pointer-checks
-CFLAGS += -Wall -Wextra -Wno-unknown-attributes -Wno-main
-CFLAGS += -Werror=incompatible-pointer-types
-CFLAGS += -MD -I. -I$K -I$(ARCHDIR)
-CFLAGS += -ffile-prefix-map=$(CURDIR)=.
+COMMON := $(ARCHFLAGS) -std=gnu99 -O2 -g -ffreestanding -fno-builtin -fno-common \
+          -fno-pie -fno-stack-protector -fno-omit-frame-pointer \
+          -Wall -Wextra -Wno-unknown-attributes -Wno-main \
+          -Werror=incompatible-pointer-types -MD \
+          -ffile-prefix-map=$(CURDIR)=.
 
-ASFLAGS := $(CFLAGS)
+KCFLAGS := $(COMMON) -I. -Ishared -I$K -I$(ARCHDIR) -Ishared/arch/$(ARCH)
+UCFLAGS := $(COMMON) -Os -ffunction-sections -fdata-sections \
+           -Ishared -Ishared/arch/$(ARCH) -Iuser
+ASFLAGS := $(KCFLAGS)
 LDFLAGS  = -z max-page-size=4096
-
-UCFLAGS := $(CFLAGS) -Os -ffunction-sections -fdata-sections
 ULDFLAGS = -z max-page-size=4096 -e main --strip-debug --no-rosegment
 ULDFLAGS += --gc-sections --image-base=0x0
 
@@ -60,7 +58,7 @@ ULIB  := $(addprefix $(BUILD)/user/,ulib.o usys.o printf.o umalloc.o)
 # ---- compile rules ----------------------------------------------------
 $(BUILD)/kernel/%.o: kernel/%.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(KCFLAGS) -c -o $@ $<
 
 $(BUILD)/kernel/%.o: kernel/%.S
 	@mkdir -p $(@D)
@@ -98,9 +96,9 @@ UPROGS := $(addprefix $(BUILD)/user/_,cat echo forktest grep init kill ln ls \
   mkdir rm sh stressfs usertests grind wc zombie logstress forphan dorphan sync)
 
 # ---- host tool and disk image ----------------------------------------
-$(BUILD)/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
+$(BUILD)/mkfs: mkfs/mkfs.c shared/fs.h shared/param.h shared/types.h shared/stat.h
 	@mkdir -p $(@D)
-	$(HOSTCC) -Wno-unknown-attributes -I. -o $@ mkfs/mkfs.c
+	$(HOSTCC) -Wno-unknown-attributes -iquote shared -o $@ mkfs/mkfs.c
 
 $(BUILD)/fs.img: $(BUILD)/mkfs README $(UPROGS)
 	$(BUILD)/mkfs $@ README $(UPROGS)

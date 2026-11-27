@@ -327,14 +327,6 @@ intr_get()
   return (x & SSTATUS_SIE) != 0;
 }
 
-static inline uint64
-r_sp()
-{
-  uint64 x;
-  asm volatile("mv %0, sp" : "=r"(x));
-  return x;
-}
-
 // read and write tp, the thread pointer, which xv6 uses to hold
 // this core's hartid (core number), the index into cpus[].
 static inline uint64
@@ -386,11 +378,7 @@ typedef uint64 *pagetable_t; // 512 PTEs
 
 #endif // __ASSEMBLER__
 
-#define PGSIZE  4096 // bytes per page
-#define PGSHIFT 12   // bits of offset within a page
-
-#define PGROUNDUP(sz)  (((sz) + PGSIZE - 1) & ~(PGSIZE - 1))
-#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE - 1))
+#include "uabi.h"
 
 #define PTE_V (1L << 0) // valid
 #define PTE_R (1L << 1)
@@ -409,9 +397,3 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PXMASK         0x1FF // 9 bits
 #define PXSHIFT(level) (PGSHIFT + (9 * (level)))
 #define PX(level, va)  ((((uint64)(va)) >> PXSHIFT(level)) & PXMASK)
-
-// one beyond the highest possible virtual address.
-// MAXVA is actually one bit less than the max allowed by
-// Sv39, to avoid having to sign-extend virtual addresses
-// that have the high bit set.
-#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))

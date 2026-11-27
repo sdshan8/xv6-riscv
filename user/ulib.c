@@ -1,9 +1,10 @@
-#include "kernel/types.h"
-#include "kernel/stat.h"
-#include "kernel/fcntl.h"
-#include "kernel/riscv.h"
-#include "kernel/vm.h"
-#include "user/user.h"
+#include "types.h"
+#include "stat.h"
+#include "fcntl.h"
+#include "uabi.h"
+#include "uabi.h"
+#include "user.h"
+#include <syscall.h>
 
 //
 // wrapper so that it's OK if main() does not call exit().
